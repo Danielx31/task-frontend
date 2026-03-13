@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchTasks } from "../services/taskService";
 import TaskCard from "../components/TaskCard";
 
 export default function TaskPage() {
     const [tasks, setTasks] = useState([]);
+    const [filter, setFilter] = useState('all')
     const [page, setPage] = useState(1)
     const [lastPage, setLastPage] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -13,8 +14,7 @@ export default function TaskPage() {
         setLoading(true)
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/tasks?page=${pageNumber}`)
-            const data = await response.json()
+            const data = await fetchTasks(pageNumber)
 
             setTasks(data.data.data)
             setPage(data.data.current_page)
@@ -22,10 +22,18 @@ export default function TaskPage() {
 
         } catch (error) {
             console.error(error)
+            setError(error.message)
         } finally {
             setLoading(false)
         }
     }
+
+    const filteredTasks = useMemo(() => {
+        if (filter === "all") return tasks
+
+        return tasks.filter(task => task.status === filter)
+    }, [tasks, filter])
+
     useEffect(() => {
         loadTasks(page)
     }, [page])
@@ -37,7 +45,13 @@ export default function TaskPage() {
         <div>
             <h1>Task</h1>
 
-            {tasks.map(task => (
+            <select onChange={(e) => setFilter(e.target.value)}>
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+            </select>
+
+            {filteredTasks.map(task => (
                 <TaskCard key={task.id} task={task} />
             ))}
 
